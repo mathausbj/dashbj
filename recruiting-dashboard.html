@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Recruiting Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --sb:#1a1a2e;--bg:#f3f3f3;--white:#fff;--border:#e0e0e0;
+  --text:#252525;--muted:#666;--muted2:#999;
+  --teal:#01b8aa;--yellow:#f2c811;--orange:#fe7f0b;
+  --blue:#118dff;--red:#e8434a;--purple:#8b44ac;
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;overflow:hidden;font-size:13px;}
+
+/* SIDEBAR */
+.sidebar{width:44px;background:var(--sb);display:flex;flex-direction:column;align-items:center;padding:8px 0;gap:4px;z-index:10;flex-shrink:0;}
+.sb-logo{width:30px;height:30px;background:var(--teal);border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:15px;margin-bottom:8px;}
+.sb-ico{width:34px;height:34px;border-radius:5px;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:15px;cursor:pointer;transition:all .15s;}
+.sb-ico:hover{background:rgba(255,255,255,.1);color:#fff;}
+.sb-ico.on{background:rgba(1,184,170,.2);color:var(--teal);}
+.sb-ico.bot{margin-top:auto;}
+
+/* MAIN */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+
+/* TOPBAR */
+.topbar{height:42px;background:var(--sb);display:flex;align-items:center;padding:0 14px;gap:10px;flex-shrink:0;}
+.tb-title{color:#fff;font-size:13px;font-weight:500;}
+.tb-sep{color:rgba(255,255,255,.3);margin:0 4px;}
+.tb-client{color:#aaa;font-weight:300;font-size:12px;}
+.tb-right{display:flex;align-items:center;gap:8px;margin-left:auto;}
+.tb-btn{height:26px;padding:0 10px;border-radius:3px;border:none;cursor:pointer;font-family:inherit;font-size:11px;display:flex;align-items:center;gap:4px;}
+.tb-outline{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2);}
+.tb-primary{background:var(--teal);color:#fff;}
+.tb-btn:hover{opacity:.85;}
+.s-dot{width:7px;height:7px;border-radius:50%;animation:blink 2s infinite;}
+.s-dot.live{background:var(--teal);}
+.s-dot.idle{background:var(--yellow);}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* TOOLBAR */
+.toolbar{height:36px;background:var(--white);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 12px;gap:8px;flex-shrink:0;}
+.tsep{width:1px;height:18px;background:var(--border);margin:0 2px;}
+.t-btn{height:26px;padding:0 10px;border-radius:3px;border:none;background:transparent;color:var(--muted);font-family:inherit;font-size:11px;cursor:pointer;display:flex;align-items:center;gap:4px;transition:background .12s;}
+.t-btn:hover{background:#f0f0f0;color:var(--text);}
+.t-btn.active{background:var(--teal);color:#fff;}
+.view-lbl{font-size:11px;color:var(--muted);font-weight:600;}
+
+/* CANVAS */
+.canvas{flex:1;overflow-y:auto;padding:10px 12px 16px;display:flex;flex-direction:column;gap:10px;}
+.row{display:flex;gap:10px;}
+
+/* UPLOAD ZONE */
+.upload-zone{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;border:2px dashed var(--border);border-radius:12px;background:var(--white);padding:48px;cursor:pointer;transition:all .2s;text-align:center;}
+.upload-zone:hover{border-color:var(--teal);background:#f0fdf9;}
+.upload-zone .icon{font-size:40px;opacity:.5;}
+.upload-zone h3{font-size:15px;font-weight:600;color:var(--text);}
+.upload-zone p{font-size:12px;color:var(--muted2);max-width:320px;line-height:1.6;}
+.upload-zone .hint{font-size:11px;color:var(--teal);font-weight:600;}
+input[type=file]{display:none;}
+
+/* KPI */
+.kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;}
+.kpi-card{background:var(--white);border:1px solid var(--border);padding:12px 14px 10px;position:relative;overflow:hidden;}
+.kpi-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--kc,var(--teal));}
+.kpi-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted2);font-weight:700;margin-bottom:2px;}
+.kpi-sub{font-size:9px;color:var(--muted2);margin-bottom:6px;}
+.kpi-val{font-size:26px;font-weight:300;color:var(--text);line-height:1;letter-spacing:-1px;}
+.kpi-delta{font-size:10px;color:var(--muted2);margin-top:4px;}
+.kpi-delta b{color:var(--kc,var(--teal));}
+
+/* CHART CARD */
+.cc{background:var(--white);border:1px solid var(--border);padding:12px 14px 10px;display:flex;flex-direction:column;min-width:0;}
+.cc-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text);margin-bottom:1px;}
+.cc-sub{font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.3px;margin-bottom:8px;}
+.cw{flex:1;position:relative;min-height:0;}
+.f1{flex:1}.f15{flex:1.5}.f2{flex:2}.f3{flex:3}
+.h200{height:200px}.h220{height:220px}.h260{height:260px}.h320{height:320px}
+
+/* FUNNEL VISUAL */
+.funnel-wrap{display:flex;flex-direction:column;gap:6px;padding:4px 0;}
+.funnel-stage{display:flex;align-items:center;gap:10px;}
+.funnel-label{font-size:11px;color:var(--text);width:180px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.funnel-bar-wrap{flex:1;height:22px;background:#f5f5f5;border-radius:3px;overflow:hidden;position:relative;}
+.funnel-bar{height:100%;border-radius:3px;transition:width .8s cubic-bezier(.4,0,.2,1);display:flex;align-items:center;padding-left:8px;}
+.funnel-bar-val{font-size:10px;font-weight:700;color:#fff;white-space:nowrap;}
+.funnel-conv{font-size:10px;color:var(--muted2);width:52px;text-align:right;flex-shrink:0;}
+.funnel-conv b{color:var(--teal);}
+
+/* CONVERSION CARDS */
+.conv-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.conv-card{background:var(--white);border:1px solid var(--border);padding:12px 14px;text-align:center;}
+.conv-arrow{font-size:10px;color:var(--muted2);margin-bottom:4px;}
+.conv-rate{font-size:22px;font-weight:300;letter-spacing:-1px;margin-bottom:2px;}
+.conv-label{font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.5px;line-height:1.4;}
+
+/* VIEW TOGGLE */
+.view-pill{display:flex;background:#f0f0f0;border-radius:4px;padding:2px;gap:2px;}
+.vp-btn{height:22px;padding:0 10px;border-radius:3px;border:none;background:transparent;color:var(--muted);font-family:inherit;font-size:11px;cursor:pointer;transition:all .12s;font-weight:500;}
+.vp-btn.on{background:var(--white);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.1);}
+
+/* TOAST */
+.toast{position:fixed;bottom:16px;right:16px;background:var(--sb);color:#fff;border-radius:4px;padding:10px 16px;font-size:12px;z-index:200;transform:translateY(60px);opacity:0;transition:all .25s;max-width:320px;}
+.toast.show{transform:translateY(0);opacity:1;}
+.toast.success{border-left:3px solid var(--teal);}
+.toast.error{border-left:3px solid var(--red);}
+
+/* TABLE */
+.tbl-card{background:var(--white);border:1px solid var(--border);}
+.tbl-top{display:flex;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);gap:10px;}
+table{width:100%;border-collapse:collapse;font-size:11px;}
+th{padding:6px 14px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);background:#fafafa;border-bottom:2px solid var(--border);}
+td{padding:7px 14px;border-bottom:1px solid #f5f5f5;}
+tr:hover td{background:rgba(1,184,170,.03);}
+.pill{display:inline-block;font-size:9px;padding:2px 8px;border-radius:2px;font-weight:700;}
+.p-teal{background:rgba(1,184,170,.12);color:#009d91;}
+.p-blue{background:rgba(17,141,255,.1);color:var(--blue);}
+.p-orange{background:rgba(254,127,11,.1);color:var(--orange);}
+.p-purple{background:rgba(139,68,172,.1);color:var(--purple);}
+
+/* LEGEND */
+.legend{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:6px;}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted);}
+.leg-dot{width:8px;height:8px;border-radius:2px;}
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<div class="sidebar">
+  <div class="sb-logo">📊</div>
+  <div class="sb-ico on">⊞</div>
+  <div class="sb-ico">👥</div>
+  <div class="sb-ico">📋</div>
+  <div class="sb-ico">📈</div>
+  <div class="sb-ico bot">⚙️</div>
+</div>
+
+<div class="main">
+
+  <div class="topbar">
+    <div class="tb-title">Recruiting Dashboard <span class="tb-sep">·</span> <span class="tb-client" id="vagaName">Nenhuma vaga carregada</span></div>
+    <div class="tb-right">
+      <button class="tb-btn tb-outline" onclick="document.getElementById('fileInput').click()">⬆ Carregar CSV</button>
+      <button class="tb-btn tb-outline" id="refreshBtn" onclick="reloadFile()" style="display:none">↻ Recarregar</button>
+      <div style="display:flex;align-items:center;gap:5px;color:#aaa;font-size:11px;">
+        <span class="s-dot idle" id="sdot"></span>
+        <span id="stxt">Aguardando CSV</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="toolbar" id="toolbar">
+    <span class="view-lbl">Visualizar:</span>
+    <div class="view-pill">
+      <button class="vp-btn on" onclick="setView('active')">Ativos agora</button>
+      <!-- Novos (semana) oculto — CSV não tem histórico por data -->
+      <!-- <button class="vp-btn" onclick="setView('new')">Novos (semana)</button> -->
+      <button class="vp-btn" onclick="setView('historical')">Histórico total</button>
+    </div>
+    <div class="tsep"></div>
+    <span style="font-size:10px;color:var(--muted2)" id="tstp"></span>
+  </div>
+
+  <div class="canvas" id="canvas">
+    <!-- Upload inicial -->
+    <label for="fileInput" style="display:contents">
+      <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
+        <div class="icon">📂</div>
+        <h3>Carregar CSV do Lever</h3>
+        <p>Exporte o relatório <strong>Pipeline Opportunity Volume</strong> da vaga desejada no Lever e arraste aqui ou clique para selecionar.</p>
+        <span class="hint">Formato esperado: Pipeline_opportunity_volume_*.csv</span>
+      </div>
+    </label>
+  </div>
+
+</div>
+
+<input type="file" id="fileInput" accept=".csv" onchange="handleFile(this)">
+
+<script>
+const TEAL='#01b8aa',BLUE='#118dff',ORANGE='#fe7f0b',YELLOW='#f2c811',RED='#e8434a',PURPLE='#8b44ac',GREEN='#107c41';
+const PAL=[TEAL,BLUE,ORANGE,YELLOW,RED,PURPLE,GREEN,'#e040fb'];
+
+let currentData = null;
+let currentView = 'active'; // 'active' | 'new' | 'historical'
+let charts = {};
+let lastFile = null;
+
+// ── Limpa nome do stage (remove o UUID do Lever) ──
+function cleanStage(raw) {
+  return raw.split('|')[0].trim();
+}
+
+// ── Lê o arquivo CSV ──
+function handleFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  lastFile = file;
+  const reader = new FileReader();
+  reader.onload = e => parseAndRender(e.target.result, file.name);
+  reader.readAsText(file);
+}
+
+function reloadFile() {
+  document.getElementById('fileInput').click();
+}
+
+function parseAndRender(text, filename) {
+  try {
+    const lines = text.trim().split('\n').filter(l => l.trim());
+    if (lines.length < 2) throw new Error('CSV vazio');
+
+    const headers = lines[0].split(',').map(h => h.replace(/"/g,'').trim());
+    // Espera: Stage name, New opportunities, Active opportunities, Historical opportunities
+    const iStage  = headers.findIndex(h => h.toLowerCase().includes('stage'));
+    const iNew    = headers.findIndex(h => h.toLowerCase().includes('new'));
+    const iActive = headers.findIndex(h => h.toLowerCase().includes('active'));
+    const iHist   = headers.findIndex(h => h.toLowerCase().includes('historical'));
+
+    if (iStage < 0) throw new Error('Coluna "Stage name" não encontrada');
+
+    const rows = lines.slice(1).map(line => {
+      const cols = line.split(',').map(c => c.replace(/"/g,'').trim());
+      return {
+        stage:       cleanStage(cols[iStage] || ''),
+        newOpp:      parseInt(cols[iNew]    || 0) || 0,
+        activeOpp:   parseInt(cols[iActive] || 0) || 0,
+        historicalOpp: parseInt(cols[iHist] || 0) || 0,
+      };
+    }).filter(r => r.stage);
+
+    currentData = rows;
+
+    // Nome da vaga a partir do filename
+    const vagaName = filename.replace('Pipeline_opportunity_volume_','').replace('.csv','').replace(/_/g,' ').replace(/\(\d+\)/,'').trim() || 'Vaga';
+    document.getElementById('vagaName').textContent = vagaName;
+    document.getElementById('sdot').className = 's-dot live';
+    document.getElementById('stxt').textContent = 'Carregado';
+    document.getElementById('refreshBtn').style.display = 'flex';
+    document.getElementById('tstp').textContent = 'Atualizado: ' + new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+
+    renderDashboard();
+    toast(`✓ ${rows.length} stages carregados`, 'success');
+  } catch(e) {
+    toast('Erro ao ler CSV: ' + e.message, 'error');
+  }
+}
+
+function setView(v) {
+  currentView = v;
+  document.querySelectorAll('.vp-btn').forEach((b,i) => {
+    b.classList.toggle('on', ['active','new','historical'][i] === v);
+  });
+  if (currentData) renderDashboard();
+}
+
+// ── Retorna o valor correto baseado na view ──
+function val(row) {
+  if (currentView === 'new')        return row.newOpp;
+  if (currentView === 'historical') return row.historicalOpp;
+  return row.activeOpp;
+}
+
+function viewLabel() {
+  if (currentView === 'new')        return 'Novos esta semana';
+  if (currentView === 'historical') return 'Total histórico';
+  return 'Ativos agora';
+}
+
+// ── Renderiza o dashboard ──
+function renderDashboard() {
+  const d = currentData;
+  const total = val(d[0]); // New lead = total de entradas
+
+  // Encontra stages-chave de forma flexível
+  const find = (keywords) => d.find(r => keywords.some(k => r.stage.toLowerCase().includes(k.toLowerCase())));
+
+  const sNewLead    = find(['new lead','new applicant','lead']);
+  const sReached    = find(['reached out','reach out','outreach']);
+  const s2nd        = find(['2nd','second','2do']);
+  const sResponded  = find(['responded','response','respondeu']);
+  const sBJInt      = find(['banana jobs interview','bj interview','internal interview','entrevista interna','nossa entrevista']);
+  const sBJAprov    = find(['aprovado banana','aprovado bj','approved','aprovado interno']);
+  const sClient1    = find(['client interview (1)','client interview 1','entrevista cliente 1','cliente (1)']);
+  const sClient2    = find(['client interview (2)','client interview 2','entrevista cliente 2','cliente (2)']);
+
+  // ── Taxas de conversão ──
+  const conv = (a, b) => {
+    if (!a || !b || val(b) === 0) return null;
+    return Math.round(val(a) / val(b) * 100);
+  };
+
+  // Total abordados = Reached out + 2nd Reach Out (mesmo candidato, 2 tentativas)
+  const totalAbordados = (sReached ? val(sReached) : 0) + (s2nd ? val(s2nd) : 0);
+
+  // Taxa de abordagem: dos adicionados, quantos foram abordados
+  const abordagemRate = sNewLead && val(sNewLead) > 0 && sReached
+    ? Math.round(val(sReached) / val(sNewLead) * 100) : null;
+
+  // Taxa 2nd reach out: dos abordados na 1ª, quantos precisaram de 2ª tentativa
+  const secondRORate = sReached && val(sReached) > 0 && s2nd
+    ? Math.round(val(s2nd) / val(sReached) * 100) : null;
+
+  // Taxa de resposta: responded ÷ total abordados (1ª + 2ª tentativa)
+  const roRate = sResponded && totalAbordados > 0
+    ? Math.round(val(sResponded) / totalAbordados * 100) : null;
+
+  // Taxa de interesse: dos que responderam (sim ou não), quantos toparam entrevista BJ
+  const bjRate     = conv(sBJInt, sResponded);
+  const aprovRate  = conv(sBJAprov, sBJInt);
+  const clientRate = conv(sClient1, sBJAprov);
+
+  // ── Estimativas separadas 1ª vs 2ª abordagem ──
+  // Lógica: candidatos que não precisaram de 2ª = Reached out - 2nd Reach Out
+  // Assumimos que Responded se distribuiu proporcionalmente entre as duas abordagens
+  const ro1Total  = sReached && s2nd ? Math.max(val(sReached) - val(s2nd), 0) : null;
+  const ro2Total  = s2nd ? val(s2nd) : null;
+  const responded = sResponded ? val(sResponded) : 0;
+
+  // Estimativa proporcional: responded distribuído pelo peso de cada abordagem
+  const ro1Weight = ro1Total !== null && totalAbordados > 0 ? ro1Total / totalAbordados : null;
+  const ro2Weight = ro2Total !== null && totalAbordados > 0 ? ro2Total / totalAbordados : null;
+
+  const ro1Responded = ro1Weight !== null ? Math.round(responded * ro1Weight) : null;
+  const ro2Responded = ro2Weight !== null ? Math.round(responded * ro2Weight) : null;
+
+  const ro1Rate = ro1Total && ro1Total > 0 && ro1Responded !== null
+    ? Math.round(ro1Responded / ro1Total * 100) : null;
+  const ro2Rate = ro2Total && ro2Total > 0 && ro2Responded !== null
+    ? Math.round(ro2Responded / ro2Total * 100) : null;
+
+  const empty = {activeOpp:0,newOpp:0,historicalOpp:0};
+
+  // ── Render HTML ──
+  document.getElementById('canvas').innerHTML = `
+
+    <!-- KPIs -->
+    <div class="kpi-grid">
+      ${kpiCard('Total Adicionados', 'New lead na vaga', val(sNewLead||d[0]), `${d.length} stages no funil`, '--kc:var(--blue)')}
+      ${kpiCard('Taxa de Abordagem', 'Adicionados → Reached out', abordagemRate !== null ? abordagemRate+'%' : '—', abordagemRate !== null ? `${val(sReached||empty)} abordados` : 'dados insuficientes', '--kc:var(--teal)')}
+      ${kpiCard('2nd Reach Out', 'Sem resposta → 2ª tentativa', secondRORate !== null ? secondRORate+'%' : '—', secondRORate !== null ? `${val(s2nd||empty)} precisaram de 2ª abordagem` : 'dados insuficientes', '--kc:var(--orange)')}
+      ${kpiCard('Taxa de Resposta', '(1ª + 2ª abordagem) → Responded', roRate !== null ? roRate+'%' : '—', roRate !== null ? `${val(sResponded||empty)} responderam (sim ou não)` : 'dados insuficientes', '--kc:var(--purple)')}
+      ${kpiCard('Taxa de Interesse', 'Responded → BJ Interview', bjRate !== null ? bjRate+'%' : '—', bjRate !== null ? `${val(sBJInt||empty)} toparam entrevista` : 'dados insuficientes', '--kc:var(--yellow)')}
+    </div>
+
+    <!-- Conversão entre stages -->
+    <div class="conv-grid">
+      ${convCard('Adicionados → Abordados', abordagemRate, TEAL)}
+      ${convCard('Abordados → Responderam', roRate, BLUE)}
+      ${convCard('Responderam → BJ Interview', bjRate, ORANGE)}
+      ${convCard('BJ Interview → Client Interview (1)', conv(sClient1, sBJInt), PURPLE)}
+    </div>
+
+    <!-- Estimativas 1ª vs 2ª abordagem -->
+    <div class="cc" style="padding:12px 16px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px;">
+        <div>
+          <div class="cc-title">Retorno por Abordagem — Estimativa</div>
+          <div class="cc-sub">Distribuição proporcional · o Lever não separa esse dado nativamente</div>
+        </div>
+        <div style="display:inline-flex;align-items:center;gap:6px;background:#fffbe6;border:1px solid #ffe58f;border-radius:4px;padding:5px 10px;font-size:10px;color:#7a5700;">
+          <span>⚠️</span>
+          <span>Estimativa baseada em distribuição proporcional do volume. Não reflete rastreamento individual por candidato.</span>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+
+        <!-- 1ª abordagem -->
+        <div style="background:#f9f9f9;border:1px solid var(--border);border-radius:6px;padding:14px 16px;">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
+            <div style="width:8px;height:8px;border-radius:2px;background:${TEAL}"></div>
+            <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text)">1ª Abordagem (Reached out)</span>
+          </div>
+          <div style="display:flex;gap:20px;flex-wrap:wrap;">
+            <div>
+              <div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.4px;">Abordados exclusivos</div>
+              <div style="font-size:22px;font-weight:300;color:var(--text);letter-spacing:-1px;">${ro1Total !== null ? ro1Total : '—'}</div>
+              <div style="font-size:10px;color:var(--muted2);">não precisaram de 2ª tentativa</div>
+            </div>
+            <div>
+              <div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.4px;">Respostas estimadas</div>
+              <div style="font-size:22px;font-weight:300;color:${TEAL};letter-spacing:-1px;">${ro1Responded !== null ? ro1Responded : '—'}</div>
+              <div style="font-size:10px;color:var(--muted2);">~${ro1Rate !== null ? ro1Rate+'%' : '—'} de retorno</div>
+            </div>
+          </div>
+          ${ro1Rate !== null ? `
+          <div style="margin-top:10px;">
+            <div style="height:8px;background:#eee;border-radius:4px;overflow:hidden;">
+              <div style="width:${Math.min(ro1Rate,100)}%;height:100%;background:${TEAL};border-radius:4px;transition:width .8s;"></div>
+            </div>
+          </div>` : ''}
+        </div>
+
+        <!-- 2ª abordagem -->
+        <div style="background:#f9f9f9;border:1px solid var(--border);border-radius:6px;padding:14px 16px;">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;">
+            <div style="width:8px;height:8px;border-radius:2px;background:${ORANGE}"></div>
+            <span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text)">2ª Abordagem (2nd Reach Out)</span>
+          </div>
+          <div style="display:flex;gap:20px;flex-wrap:wrap;">
+            <div>
+              <div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.4px;">Abordados</div>
+              <div style="font-size:22px;font-weight:300;color:var(--text);letter-spacing:-1px;">${ro2Total !== null ? ro2Total : '—'}</div>
+              <div style="font-size:10px;color:var(--muted2);">receberam 2ª mensagem</div>
+            </div>
+            <div>
+              <div style="font-size:9px;color:var(--muted2);text-transform:uppercase;letter-spacing:.4px;">Respostas estimadas</div>
+              <div style="font-size:22px;font-weight:300;color:${ORANGE};letter-spacing:-1px;">${ro2Responded !== null ? ro2Responded : '—'}</div>
+              <div style="font-size:10px;color:var(--muted2);">~${ro2Rate !== null ? ro2Rate+'%' : '—'} de retorno</div>
+            </div>
+          </div>
+          ${ro2Rate !== null ? `
+          <div style="margin-top:10px;">
+            <div style="height:8px;background:#eee;border-radius:4px;overflow:hidden;">
+              <div style="width:${Math.min(ro2Rate,100)}%;height:100%;background:${ORANGE};border-radius:4px;transition:width .8s;"></div>
+            </div>
+          </div>` : ''}
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Funil + Gráfico de barras -->
+    <div class="row">
+      <div class="cc f2 h320">
+        <div class="cc-title">Funil do Processo</div>
+        <div class="cc-sub">${viewLabel()} · clique para comparar</div>
+        <div class="legend">
+          <div class="leg-item"><div class="leg-dot" style="background:${TEAL}"></div>Ativos</div>
+          <div class="leg-item"><div class="leg-dot" style="background:${BLUE}"></div>Novos</div>
+          <div class="leg-item"><div class="leg-dot" style="background:#e0e0e0"></div>Histórico</div>
+        </div>
+        <div class="funnel-wrap" id="funnelViz"></div>
+      </div>
+      <div class="cc f3 h320">
+        <div class="cc-title">Volume por Stage</div>
+        <div class="cc-sub">${viewLabel()}</div>
+        <div class="cw"><canvas id="barChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Comparativo Active vs New vs Historical -->
+    <div class="row">
+      <div class="cc f1 h220">
+        <div class="cc-title">Ativos × Novos × Histórico</div>
+        <div class="cc-sub">Comparativo por stage</div>
+        <div class="cw"><canvas id="compareChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Tabela detalhada -->
+    <div class="tbl-card">
+      <div class="tbl-top">
+        <div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px">Detalhamento por Stage</div>
+          <div style="font-size:9px;color:var(--muted2)">${d.length} stages · ${viewLabel()}</div>
+        </div>
+      </div>
+      <table>
+        <thead><tr>
+          <th>Stage</th>
+          <th>Novos (semana)</th>
+          <th>Ativos agora</th>
+          <th>Histórico total</th>
+          <th>Conv. p/ próximo</th>
+          <th>% do pipeline</th>
+        </tr></thead>
+        <tbody>
+          ${d.map((r,i) => {
+            const next = d[i+1];
+            const convNext = next && r.historicalOpp > 0 ? Math.round(next.historicalOpp / r.historicalOpp * 100) : null;
+            const pct = d[0].historicalOpp > 0 ? Math.round(r.historicalOpp / d[0].historicalOpp * 100) : 0;
+            return `<tr>
+              <td style="font-weight:500">${r.stage}</td>
+              <td><span class="pill p-blue">${r.newOpp}</span></td>
+              <td><span class="pill p-teal">${r.activeOpp}</span></td>
+              <td>${r.historicalOpp}</td>
+              <td>${convNext !== null ? `<span class="pill p-orange">${convNext}%</span>` : '—'}</td>
+              <td>
+                <div style="display:flex;align-items:center;gap:6px">
+                  <div style="flex:1;height:6px;background:#f0f0f0;border-radius:3px;overflow:hidden">
+                    <div style="width:${pct}%;height:100%;background:var(--teal);border-radius:3px"></div>
+                  </div>
+                  <span style="font-size:10px;color:var(--muted2);width:28px">${pct}%</span>
+                </div>
+              </td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+
+  renderFunnelViz(d);
+  renderBarChart(d);
+  renderCompareChart(d);
+}
+
+function kpiCard(lbl, sub, value, delta, style) {
+  return `<div class="kpi-card" style="${style}">
+    <div class="kpi-lbl">${lbl}</div>
+    <div class="kpi-sub">${sub}</div>
+    <div class="kpi-val">${value}</div>
+    <div class="kpi-delta"><b>${delta}</b></div>
+  </div>`;
+}
+
+function convCard(label, rate, color) {
+  const r = rate !== null ? rate : null;
+  return `<div class="conv-card">
+    <div class="conv-arrow">Taxa de conversão</div>
+    <div class="conv-rate" style="color:${r !== null ? color : '#ccc'}">${r !== null ? r+'%' : '—'}</div>
+    <div class="conv-label">${label}</div>
+  </div>`;
+}
+
+// ── Funil visual com barras proporcionais ──
+function renderFunnelViz(d) {
+  const el = document.getElementById('funnelViz');
+  if (!el) return;
+  const max = Math.max(...d.map(r => r.historicalOpp), 1);
+  const colors = [TEAL, BLUE, ORANGE, YELLOW, PURPLE, '#e040fb', GREEN, RED];
+
+  el.innerHTML = d.map((r, i) => {
+    const w = Math.round(val(r) / max * 100);
+    const convPrev = i > 0 && d[i-1].historicalOpp > 0
+      ? Math.round(r.historicalOpp / d[i-1].historicalOpp * 100)
+      : null;
+    return `<div class="funnel-stage">
+      <div class="funnel-label" title="${r.stage}">${r.stage}</div>
+      <div class="funnel-bar-wrap">
+        <div class="funnel-bar" style="width:${Math.max(w,3)}%;background:${colors[i%colors.length]}">
+          <span class="funnel-bar-val">${val(r)}</span>
+        </div>
+      </div>
+      <div class="funnel-conv">${convPrev !== null ? `<b>${convPrev}%</b>` : ''}</div>
+    </div>`;
+  }).join('');
+}
+
+// ── Gráfico de barras por stage ──
+function dc(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+
+function renderBarChart(d) {
+  dc('bar');
+  const el = document.getElementById('barChart');
+  if (!el) return;
+  charts.bar = new Chart(el, {
+    type: 'bar',
+    data: {
+      labels: d.map(r => r.stage),
+      datasets: [{
+        data: d.map(r => val(r)),
+        backgroundColor: d.map((_,i) => [TEAL,BLUE,ORANGE,YELLOW,PURPLE,'#e040fb',GREEN,RED][i%8]),
+        borderRadius: 3,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color:'#999', font:{family:'DM Sans',size:9}, maxRotation:25 }, grid: { display:false } },
+        y: { ticks: { color:'#999', font:{family:'DM Sans',size:9} }, grid: { color:'rgba(0,0,0,0.05)' } }
+      }
+    }
+  });
+}
+
+// ── Gráfico comparativo: active vs new vs historical ──
+function renderCompareChart(d) {
+  dc('compare');
+  const el = document.getElementById('compareChart');
+  if (!el) return;
+  charts.compare = new Chart(el, {
+    type: 'bar',
+    data: {
+      labels: d.map(r => r.stage),
+      datasets: [
+        { label: 'Ativos agora',    data: d.map(r => r.activeOpp),      backgroundColor: TEAL,   borderRadius: 2 },
+        { label: 'Novos (semana)',   data: d.map(r => r.newOpp),         backgroundColor: BLUE,   borderRadius: 2 },
+        { label: 'Histórico total', data: d.map(r => r.historicalOpp),  backgroundColor: '#e0e0e0', borderRadius: 2 },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'top',
+          labels: { color:'#999', font:{family:'DM Sans',size:10}, padding:12, boxWidth:10 }
+        }
+      },
+      scales: {
+        x: { ticks: { color:'#999', font:{family:'DM Sans',size:9}, maxRotation:25 }, grid: { display:false } },
+        y: { ticks: { color:'#999', font:{family:'DM Sans',size:9} }, grid: { color:'rgba(0,0,0,0.05)' } }
+      }
+    }
+  });
+}
+
+// ── DRAG & DROP ──
+document.addEventListener('dragover', e => e.preventDefault());
+document.addEventListener('drop', e => {
+  e.preventDefault();
+  const file = e.dataTransfer.files[0];
+  if (file && file.name.endsWith('.csv')) {
+    lastFile = file;
+    const reader = new FileReader();
+    reader.onload = ev => parseAndRender(ev.target.result, file.name);
+    reader.readAsText(file);
+  } else {
+    toast('Arquivo deve ser .csv', 'error');
+  }
+});
+
+function toast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast show ${type}`;
+  setTimeout(() => t.classList.remove('show'), 4000);
+}
+</script>
+</body>
+</html>
