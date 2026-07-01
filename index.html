@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -348,8 +349,9 @@ function buildFunnelStages(d){
   const sBJAprovR=find(['aprovado banana','aprovado bj','approved']);
   const sClient1=find(['client interview (1)','client interview 1']);
 
-  const totalAbord=(sReached?val(sReached):0)+(s2nd?val(s2nd):0);
-  const sBJAprov=sBJAprovR&&sClient1&&val(sBJAprovR)<val(sClient1)
+  const h=(row)=>row?row.historicalOpp:0;
+  const totalAbordHist=h(sReached); // 2nd é subconjunto do Reached out
+  const sBJAprov=sBJAprovR&&sClient1&&h(sBJAprovR)<h(sClient1)
     ?{...sBJAprovR,activeOpp:sClient1.activeOpp,newOpp:sClient1.newOpp,historicalOpp:sClient1.historicalOpp}
     :sBJAprovR;
 
@@ -361,9 +363,10 @@ function buildFunnelStages(d){
     {key:'client1',  label:'Client Interview (1)',  vol:sClient1?val(sClient1):0},
   ];
 
-  const r=(a,b)=>a&&b&&val(b)>0?val(a)/val(b):null;
+  // Taxas sempre em histórico — conversão real do processo
+  const r=(a,b)=>a&&b&&h(b)>0?h(a)/h(b):null;
   FUNNEL_RATES={
-    'reached->responded': totalAbord>0&&sResponded?val(sResponded)/totalAbord:null,
+    'reached->responded': totalAbordHist>0&&sResponded?h(sResponded)/totalAbordHist:null,
     'responded->bjInt':   r(sBJInt,sResponded),
     'bjInt->bjAprov':     r(sBJAprov,sBJInt),
     'bjAprov->client1':   r(sClient1,sBJAprov),
@@ -385,29 +388,42 @@ function renderDashboard(){
   const sClient2=find(['client interview (2)','client interview 2']);
   const empty={activeOpp:0,newOpp:0,historicalOpp:0};
 
-  const sBJAprov=sBJAprovR&&sClient1&&val(sBJAprovR)<val(sClient1)
+  const sBJAprov=sBJAprovR&&sClient1&&sBJAprovR.historicalOpp<sClient1.historicalOpp
     ?{...sBJAprovR,activeOpp:sClient1.activeOpp,newOpp:sClient1.newOpp,historicalOpp:sClient1.historicalOpp}
     :sBJAprovR;
 
-  const totalAbord=(sReached?val(sReached):0)+(s2nd?val(s2nd):0);
-  const cv=(a,b)=>a&&b&&val(b)>0?Math.round(val(a)/val(b)*100):null;
+  // ── Taxas sempre calculadas sobre Historical (bruto real, independente da view) ──
+  const h=(row)=>row?row.historicalOpp:0; // sempre histórico para taxas
+  const cv=(a,b)=>a&&b&&h(b)>0?Math.round(h(a)/h(b)*100):null;
 
-  const roRate=sResponded&&totalAbord>0?Math.round(val(sResponded)/totalAbord*100):null;
-  const secondRORate=sReached&&val(sReached)>0&&s2nd?Math.round(val(s2nd)/val(sReached)*100):null;
-  const bjRate=cv(sBJInt,sResponded);
-  const aprovRate=cv(sBJAprov,sBJInt);
-  const clientRate=cv(sClient1,sBJAprov);
+  // Total abordados = Historical Reached out (2nd Reach Out é subconjunto, não soma)
+  const totalAbordHist = h(sReached);
 
-  // Estimativa 1ª vs 2ª abordagem
-  const ro1Total=sReached&&s2nd?Math.max(val(sReached)-val(s2nd),0):null;
-  const ro2Total=s2nd?val(s2nd):null;
-  const responded=sResponded?val(sResponded):0;
-  const ro1Weight=ro1Total!==null&&totalAbord>0?ro1Total/totalAbord:null;
-  const ro2Weight=ro2Total!==null&&totalAbord>0?ro2Total/totalAbord:null;
-  const ro1Responded=ro1Weight!==null?Math.round(responded*ro1Weight):null;
-  const ro2Responded=ro2Weight!==null?Math.round(responded*ro2Weight):null;
-  const ro1Rate=ro1Total&&ro1Total>0&&ro1Responded!==null?Math.round(ro1Responded/ro1Total*100):null;
-  const ro2Rate=ro2Total&&ro2Total>0&&ro2Responded!==null?Math.round(ro2Responded/ro2Total*100):null;
+  // Taxa de resposta = Responded ÷ Reached out (histórico)
+  const roRate = sResponded&&totalAbordHist>0 ? Math.round(h(sResponded)/totalAbordHist*100) : null;
+
+  // Ghost rate = quem nunca respondeu ÷ total abordado
+  const ghostCount = sReached&&sResponded ? h(sReached)-h(sResponded) : null;
+  const ghostRate  = ghostCount!==null&&totalAbordHist>0 ? Math.round(ghostCount/totalAbordHist*100) : null;
+
+  // 2nd Reach Out = quantos precisaram de 2ª tentativa ÷ total abordado
+  const secondRORate = sReached&&s2nd&&h(sReached)>0 ? Math.round(h(s2nd)/h(sReached)*100) : null;
+
+  // Demais taxas — sempre histórico
+  const bjRate     = cv(sBJInt, sResponded);
+  const aprovRate  = cv(sBJAprov, sBJInt);
+  const clientRate = cv(sClient1, sBJAprov);
+
+  // Estimativa 1ª vs 2ª abordagem — baseada em histórico
+  const ro1Total     = sReached&&s2nd ? Math.max(h(sReached)-h(s2nd), 0) : null;
+  const ro2Total     = s2nd ? h(s2nd) : null;
+  const respondedH   = h(sResponded);
+  const ro1Weight    = ro1Total!==null&&totalAbordHist>0 ? ro1Total/totalAbordHist : null;
+  const ro2Weight    = ro2Total!==null&&totalAbordHist>0 ? ro2Total/totalAbordHist : null;
+  const ro1Responded = ro1Weight!==null ? Math.round(respondedH*ro1Weight) : null;
+  const ro2Responded = ro2Weight!==null ? Math.round(respondedH*ro2Weight) : null;
+  const ro1Rate      = ro1Total&&ro1Total>0&&ro1Responded!==null ? Math.round(ro1Responded/ro1Total*100) : null;
+  const ro2Rate      = ro2Total&&ro2Total>0&&ro2Responded!==null ? Math.round(ro2Responded/ro2Total*100) : null;
 
   // Selects da calculadora
   const stageOpts=FUNNEL_STAGES.map(s=>`<option value="${s.key}">${s.label}</option>`).join('');
@@ -416,11 +432,11 @@ function renderDashboard(){
 
     <!-- KPIs -->
     <div class="kpi-grid">
-      ${kpi('Total Adicionados','New leads na vaga',val(sNewLead||d[0]),'📥',C.blue,'--kc:'+C.blue,`${d.length} stages no funil`)}
-      ${kpi('2nd Reach Out','Precisaram de 2ª tentativa',secondRORate!==null?secondRORate+'%':'—','🔁',C.orange,'--kc:'+C.orange,secondRORate!==null?`${val(s2nd||empty)} candidatos`:'dados insuficientes')}
-      ${kpi('Taxa de Resposta','(1ª + 2ª) → Responded',roRate!==null?roRate+'%':'—','💬',C.purple,'--kc:'+C.purple,roRate!==null?`${val(sResponded||empty)} responderam`:'dados insuficientes')}
-      ${kpi('Taxa de Interesse','Responded → BJ Interview',bjRate!==null?bjRate+'%':'—','🎯',C.teal,'--kc:'+C.teal,bjRate!==null?`${val(sBJInt||empty)} toparam`:'dados insuficientes')}
-      ${kpi('Enviados ao Cliente','Aprovado BJ → Client Interview',clientRate!==null?clientRate+'%':'—','⭐',C.green,'--kc:'+C.green,clientRate!==null?`${val(sClient1||empty)} candidatos`:'dados insuficientes')}
+      ${kpi('Total Abordados','Reached out histórico',h(sReached),'📤',C.blue,'--kc:'+C.blue,`${h(s2nd||empty)} precisaram de 2ª tentativa`)}
+      ${kpi('Taxa de Resposta','Responded ÷ Reached out',roRate!==null?roRate+'%':'—','💬',C.teal,'--kc:'+C.teal,roRate!==null?`${h(sResponded||empty)} responderam`:'dados insuficientes')}
+      ${kpi('Ghost Rate','Sem resposta após abordagem',ghostRate!==null?ghostRate+'%':'—','👻',C.orange,'--kc:'+C.orange,ghostRate!==null?`${ghostCount} nunca responderam`:'dados insuficientes')}
+      ${kpi('Taxa de Interesse','Responded → BJ Interview',bjRate!==null?bjRate+'%':'—','🎯',C.purple,'--kc:'+C.purple,bjRate!==null?`${h(sBJInt||empty)} toparam entrevista`:'dados insuficientes')}
+      ${kpi('Enviados ao Cliente','BJ Interview → Client Interview',clientRate!==null?clientRate+'%':'—','⭐',C.green,'--kc:'+C.green,clientRate!==null?`${h(sClient1||empty)} candidatos`:'dados insuficientes')}
     </div>
 
     <!-- Waterfall + Calculadora -->
@@ -434,14 +450,14 @@ function renderDashboard(){
         </div>
         <div class="card-body">
           <div class="wf-wrap">
-            ${wfNode(val(sReached||empty),'Reach Out','1ª tentativa',C.teal)}
-            ${wfArrow(roRate,totalAbord>0&&val(sResponded||empty)>0?(totalAbord/val(sResponded||empty)).toFixed(1):null)}
+            ${wfNode(val(sReached||empty),'Reach Out','total abordado',C.teal)}
+            ${wfArrow(roRate, sResponded&&h(sResponded)>0?(h(sReached)/h(sResponded)).toFixed(1):null)}
             ${wfNode(val(sResponded||empty),'Responded','sim ou não',C.blue)}
-            ${wfArrow(bjRate,val(sResponded||empty)>0&&val(sBJInt||empty)>0?(val(sResponded||empty)/val(sBJInt||empty)).toFixed(1):null)}
+            ${wfArrow(bjRate, sResponded&&sBJInt&&h(sBJInt)>0?(h(sResponded)/h(sBJInt)).toFixed(1):null)}
             ${wfNode(val(sBJInt||empty),'Banana Jobs Interview','bj interview',C.orange)}
-            ${wfArrow(aprovRate,val(sBJInt||empty)>0&&val(sBJAprov||empty)>0?(val(sBJInt||empty)/val(sBJAprov||empty)).toFixed(1):null)}
+            ${wfArrow(aprovRate, sBJInt&&sBJAprov&&h(sBJAprov)>0?(h(sBJInt)/h(sBJAprov)).toFixed(1):null)}
             ${wfNode(val(sBJAprov||empty),'Aprovados BJ','aprovado banana jobs',C.purple)}
-            ${wfArrow(clientRate,val(sBJAprov||empty)>0&&val(sClient1||empty)>0?(val(sBJAprov||empty)/val(sClient1||empty)).toFixed(1):null)}
+            ${wfArrow(clientRate, sBJAprov&&sClient1&&h(sClient1)>0?(h(sBJAprov)/h(sClient1)).toFixed(1):null)}
             ${wfNode(val(sClient1||empty),'Cliente','client interview (1)',C.green)}
           </div>
         </div>
