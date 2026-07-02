@@ -487,30 +487,42 @@ function renderDashboard(){
 
     <!-- Waterfall + Calculadora -->
     <div class="flex-row" style="align-items:stretch;">
-      <div class="card" style="flex:1;min-width:0;">
-        <div class="card-header">
-          <div>
-            <div class="card-title">Funil de Conversão</div>
-            <div class="card-sub">${viewLabel()} · reach out → responded → entrevista → cliente</div>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:16px;justify-content:space-between;">
+
+        <div class="card">
+          <div class="card-header" style="padding-bottom:0;">
+            <div>
+              <div class="card-title">Funil de Conversão</div>
+              <div class="card-sub">${viewLabel()} · reach out → responded → entrevista → cliente</div>
+            </div>
+          </div>
+          <div class="card-body" style="padding-top:10px;padding-bottom:10px;">
+            <div class="wf-wrap">
+              ${wfNode(val(sReached||empty),'Reach Out','total abordado',C.teal)}
+              ${wfArrow(roRate, sResponded&&h(sResponded)>0?(h(sReached)/h(sResponded)).toFixed(1):null)}
+              ${wfNode(val(sResponded||empty),'Responded','sim ou não',C.blue)}
+              ${wfArrow(bjRate, sResponded&&sBJInt&&h(sBJInt)>0?(h(sResponded)/h(sBJInt)).toFixed(1):null)}
+              ${wfNode(val(sBJInt||empty),'Banana Jobs Interview','bj interview',C.orange)}
+              ${wfArrow(aprovRate, sBJInt&&sBJAprov&&h(sBJAprov)>0?(h(sBJInt)/h(sBJAprov)).toFixed(1):null)}
+              ${wfNode(val(sBJAprov||empty),'Aprovados BJ','aprovado banana jobs',C.purple)}
+              ${wfArrow(clientRate, sBJAprov&&sClient1&&h(sClient1)>0?(h(sBJAprov)/h(sClient1)).toFixed(1):null)}
+              ${wfNode(val(sClient1||empty),'Cliente','client interview (1)',C.green)}
+            </div>
           </div>
         </div>
-        <div class="card-body">
-          <div class="wf-wrap">
-            ${wfNode(val(sReached||empty),'Reach Out','total abordado',C.teal)}
-            ${wfArrow(roRate, sResponded&&h(sResponded)>0?(h(sReached)/h(sResponded)).toFixed(1):null)}
-            ${wfNode(val(sResponded||empty),'Responded','sim ou não',C.blue)}
-            ${wfArrow(bjRate, sResponded&&sBJInt&&h(sBJInt)>0?(h(sResponded)/h(sBJInt)).toFixed(1):null)}
-            ${wfNode(val(sBJInt||empty),'Banana Jobs Interview','bj interview',C.orange)}
-            ${wfArrow(aprovRate, sBJInt&&sBJAprov&&h(sBJAprov)>0?(h(sBJInt)/h(sBJAprov)).toFixed(1):null)}
-            ${wfNode(val(sBJAprov||empty),'Aprovados BJ','aprovado banana jobs',C.purple)}
-            ${wfArrow(clientRate, sBJAprov&&sClient1&&h(sClient1)>0?(h(sBJAprov)/h(sClient1)).toFixed(1):null)}
-            ${wfNode(val(sClient1||empty),'Cliente','client interview (1)',C.green)}
-          </div>
+
+        <!-- Conv cards -->
+        <div class="conv-grid" style="flex:1;align-content:center;">
+          ${convCard('Reach Out → Responded',roRate,C.teal)}
+          ${convCard('Responded → BJ Interview',bjRate,C.orange)}
+          ${convCard('BJ Interview → Aprovado BJ',aprovRate,C.purple)}
+          ${convCard('BJ Interview → Client Interview (1)',cv(sClient1,sBJInt),C.blue)}
         </div>
+
       </div>
 
       <!-- Calculadora -->
-      <div class="calc-card">
+      <div class="calc-card" style="display:flex;flex-direction:column;">
         <div class="calc-header">
           <div class="calc-header-title">Calculadora de Funil</div>
           <div class="calc-header-sub">engenharia direta ou reversa</div>
@@ -548,19 +560,11 @@ function renderDashboard(){
           </div>
           <button class="calc-calc-btn" onclick="runCalc()">Calcular</button>
         </div>
-        <div class="calc-breakdown">
+        <div class="calc-breakdown" style="flex:1;">
           <div class="calc-breakdown-title">Breakdown</div>
           <div id="calcBreakdown"><div style="font-size:11px;color:var(--muted2);font-style:italic;">Selecione as etapas acima</div></div>
         </div>
       </div>
-    </div>
-
-    <!-- Conv cards -->
-    <div class="conv-grid">
-      ${convCard('Reach Out → Responded',roRate,C.teal)}
-      ${convCard('Responded → BJ Interview',bjRate,C.orange)}
-      ${convCard('BJ Interview → Aprovado BJ',aprovRate,C.purple)}
-      ${convCard('BJ Interview → Client Interview (1)',cv(sClient1,sBJInt),C.blue)}
     </div>
 
     <!-- Saúde do Processo -->
