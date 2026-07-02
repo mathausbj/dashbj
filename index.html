@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -214,12 +213,56 @@ tbody tr:hover td{background:var(--teal-light);}
 .toast.show{transform:translateY(0);opacity:1;}
 .toast.success{border-left:3px solid var(--teal);}
 .toast.error{border-left:3px solid var(--red);}
+/* ── SOURCING ── */
+.sourcing-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.sourcing-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:32px;color:var(--muted2);text-align:center;border:2px dashed var(--border);border-radius:8px;cursor:pointer;transition:all .2s;}
+.sourcing-empty:hover{border-color:var(--teal);background:var(--teal-light);}
+.sourcing-empty .icon{font-size:28px;opacity:.5;}
+.sourcing-empty p{font-size:12px;line-height:1.5;}
+.sourcing-bar-row{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);}
+.sourcing-bar-row:last-child{border-bottom:none;}
+.sourcing-bar-label{font-size:11px;color:var(--text2);flex:0 0 130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.sourcing-bar-track{flex:1;height:14px;background:var(--surface2);border-radius:3px;overflow:hidden;}
+.sourcing-bar-fill{height:100%;border-radius:3px;transition:width .6s;}
+.sourcing-bar-count{font-size:11px;font-weight:600;color:var(--text);width:24px;text-align:right;flex-shrink:0;}
+.reason-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);}
+.reason-row:last-child{border-bottom:none;}
+.reason-label{font-size:11px;color:var(--text2);flex:1;min-width:0;}
+.reason-count{font-size:11px;font-weight:600;flex-shrink:0;}
+.reason-pct{font-size:10px;color:var(--muted2);width:36px;text-align:right;flex-shrink:0;}
+.reason-bar{flex:0 0 80px;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;}
+.reason-bar-fill{height:100%;border-radius:3px;}
+
+/* ── HEALTH SCORE ── */
+.health-wrap{display:grid;grid-template-columns:220px 1fr;gap:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
+.health-left{padding:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-right:1px solid var(--border);background:var(--surface2);}
+.health-score-ring{position:relative;width:120px;height:120px;margin-bottom:14px;}
+.health-score-ring svg{transform:rotate(-90deg);}
+.health-score-ring circle{fill:none;stroke-width:10;stroke-linecap:round;}
+.health-score-ring .track{stroke:var(--border);}
+.health-score-ring .fill{transition:stroke-dashoffset .8s ease;}
+.health-score-val{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+.health-score-num{font-size:28px;font-weight:300;letter-spacing:-1.5px;line-height:1;}
+.health-score-pct{font-size:11px;color:var(--muted2);}
+.health-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px;}
+.health-status{font-size:12px;font-weight:600;padding:4px 12px;border-radius:20px;}
+.health-right{padding:20px 24px;display:flex;flex-direction:column;gap:10px;justify-content:center;}
+.health-right-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted2);margin-bottom:4px;}
+.health-metric{display:grid;grid-template-columns:180px 60px 1fr 60px;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);}
+.health-metric:last-child{border-bottom:none;}
+.health-metric-name{font-size:12px;color:var(--text2);}
+.health-metric-val{font-size:12px;font-weight:600;text-align:right;}
+.health-metric-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;}
+.health-metric-fill{height:100%;border-radius:3px;transition:width .8s;}
+.health-metric-status{display:flex;align-items:center;justify-content:flex-end;gap:4px;font-size:10px;font-weight:600;}
+.hm-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
 </style>
 </head>
 <body>
 
 <div class="toast" id="toast"></div>
 <input type="file" id="fileInput" accept=".csv" onchange="handleFile(this)">
+<input type="file" id="fileInputSourcing" accept=".csv" onchange="handleSourcingFile(this)">
 
 <!-- NAV -->
 <nav>
@@ -251,7 +294,8 @@ tbody tr:hover td{background:var(--teal-light);}
         <button class="view-tab" onclick="setView('active')">Ativos agora</button>
       </div>
       <div class="topbar-divider"></div>
-      <button class="btn btn-ghost" onclick="document.getElementById('fileInput').click()">⬆ Carregar CSV</button>
+      <button class="btn btn-ghost" onclick="document.getElementById('fileInput').click()">⬆ Pipeline CSV</button>
+      <button class="btn btn-ghost" id="btnSourcing" onclick="document.getElementById('fileInputSourcing').click()" style="display:none">⬆ Sourcing CSV</button>
       <div class="status-pill idle" id="statusPill">
         <span class="status-dot"></span>
         <span id="statusTxt">Aguardando</span>
@@ -321,6 +365,8 @@ function parseAndRender(text,filename){
     document.getElementById('statusTxt').textContent='Ao vivo';
     buildFunnelStages(rows);
     renderDashboard();
+    renderSourcingBlock();
+    document.getElementById('btnSourcing').style.display = 'flex';
     toast(`✓ ${rows.length} stages carregados · ${vagaName}`,'success');
   }catch(e){toast('Erro ao ler CSV: '+e.message,'error');}
 }
@@ -436,7 +482,7 @@ function renderDashboard(){
       ${kpi('Taxa de Resposta','Responded ÷ Reached out',roRate!==null?roRate+'%':'—','💬',C.teal,'--kc:'+C.teal,roRate!==null?`${h(sResponded||empty)} responderam`:'dados insuficientes')}
       ${kpi('Ghost Rate','Sem resposta após abordagem',ghostRate!==null?ghostRate+'%':'—','👻',C.orange,'--kc:'+C.orange,ghostRate!==null?`${ghostCount} nunca responderam`:'dados insuficientes')}
       ${kpi('Taxa de Interesse','Responded → BJ Interview',bjRate!==null?bjRate+'%':'—','🎯',C.purple,'--kc:'+C.purple,bjRate!==null?`${h(sBJInt||empty)} toparam entrevista`:'dados insuficientes')}
-      ${kpi('Enviados ao Cliente','BJ Interview → Client Interview',clientRate!==null?clientRate+'%':'—','⭐',C.green,'--kc:'+C.green,clientRate!==null?`${h(sClient1||empty)} candidatos`:'dados insuficientes')}
+      ${kpi('Aprovação p/ Cliente','BJ Interview → Client Interview',cv(sClient1,sBJInt)!==null?cv(sClient1,sBJInt)+'%':'—','⭐',C.green,'--kc:'+C.green,cv(sClient1,sBJInt)!==null?`${h(sClient1||empty)} de ${h(sBJInt||empty)} enviados`:'dados insuficientes')}
     </div>
 
     <!-- Waterfall + Calculadora -->
@@ -515,6 +561,21 @@ function renderDashboard(){
       ${convCard('Responded → BJ Interview',bjRate,C.orange)}
       ${convCard('BJ Interview → Aprovado BJ',aprovRate,C.purple)}
       ${convCard('BJ Interview → Client Interview (1)',cv(sClient1,sBJInt),C.blue)}
+    </div>
+
+    <!-- Saúde do Processo -->
+    ${renderHealthScore(roRate, ghostRate, bjRate, cv(sClient1,sBJInt), secondRORate)}
+
+    <!-- Sourcing Intelligence -->
+    <div class="card">
+      <div class="card-header" style="padding-bottom:12px;">
+        <div>
+          <div class="card-title">Sourcing Intelligence</div>
+          <div class="card-sub">Empresas de origem · motivos de reprovação · baseado no CSV de Responded</div>
+        </div>
+        <button class="btn btn-ghost" onclick="document.getElementById('fileInputSourcing').click()" style="font-size:11px;height:28px;padding:0 10px;" id="btnSourcingCard">⬆ Carregar Sourcing CSV</button>
+      </div>
+      <div class="card-body" id="sourcingBlock"></div>
     </div>
 
     <!-- Charts row -->
@@ -753,6 +814,290 @@ function runCalc(){
         <span class="calc-step-rate">${s.rate}%</span>
       </div>`).join('');
   }
+}
+
+// ── Saúde do Processo ──
+function renderHealthScore(roRate, ghostRate, bjRate, clientRate, secondRORate) {
+
+  // Benchmarks de mercado
+  const metrics = [
+    {
+      name: 'Taxa de Resposta',
+      desc: 'Responded ÷ Reached out',
+      value: roRate,
+      unit: '%',
+      weight: 0.30,
+      // Score: 0-100 baseado nos thresholds
+      score: roRate === null ? null : roRate >= 30 ? 100 : roRate >= 15 ? Math.round((roRate - 15) / 15 * 50 + 50) : Math.round(roRate / 15 * 50),
+      ref: '> 30% saudável',
+      green: 30, yellow: 15,
+    },
+    {
+      name: 'Ghost Rate',
+      desc: 'Sem resposta após abordagem',
+      value: ghostRate,
+      unit: '%',
+      weight: 0.25,
+      // Ghost rate é invertido — menor é melhor
+      score: ghostRate === null ? null : ghostRate <= 60 ? 100 : ghostRate <= 75 ? Math.round((75 - ghostRate) / 15 * 50 + 50) : Math.round(Math.max(100 - ghostRate, 0) / 25 * 50),
+      ref: '< 60% saudável',
+      invert: true,
+      green: 60, yellow: 75,
+    },
+    {
+      name: 'Taxa de Interesse',
+      desc: 'Responded → BJ Interview',
+      value: bjRate,
+      unit: '%',
+      weight: 0.25,
+      score: bjRate === null ? null : bjRate >= 35 ? 100 : bjRate >= 20 ? Math.round((bjRate - 20) / 15 * 50 + 50) : Math.round(bjRate / 20 * 50),
+      ref: '> 35% saudável',
+      green: 35, yellow: 20,
+    },
+    {
+      name: 'Aprovação p/ Cliente',
+      desc: 'BJ Interview → Client Interview',
+      value: clientRate,
+      unit: '%',
+      weight: 0.15,
+      score: clientRate === null ? null : clientRate >= 20 ? 100 : clientRate >= 10 ? Math.round((clientRate - 10) / 10 * 50 + 50) : Math.round(clientRate / 10 * 50),
+      ref: '> 20% saudável',
+      green: 20, yellow: 10,
+    },
+    {
+      name: '2nd Reach Out',
+      desc: 'Precisaram de 2ª tentativa',
+      value: secondRORate,
+      unit: '%',
+      weight: 0.05,
+      score: secondRORate === null ? null : secondRORate <= 30 ? 100 : secondRORate <= 50 ? Math.round((50 - secondRORate) / 20 * 50 + 50) : Math.round(Math.max(100 - secondRORate, 0) / 50 * 50),
+      ref: '< 30% saudável',
+      invert: true,
+      green: 30, yellow: 50,
+    },
+  ];
+
+  // Score geral ponderado
+  const validMetrics = metrics.filter(m => m.score !== null);
+  const totalWeight  = validMetrics.reduce((s, m) => s + m.weight, 0);
+  const weightedSum  = validMetrics.reduce((s, m) => s + m.score * m.weight, 0);
+  const overallScore = totalWeight > 0 ? Math.round(weightedSum / totalWeight) : null;
+
+  // Status geral
+  const getStatus = (score) => {
+    if (score === null) return { label: '—', color: '#98a2b3', bg: '#f8f9fb' };
+    if (score >= 70) return { label: 'Saudável', color: '#059669', bg: '#ecfdf5' };
+    if (score >= 40) return { label: 'Atenção', color: '#d97706', bg: '#fffbeb' };
+    return { label: 'Crítico', color: '#dc2626', bg: '#fef2f2' };
+  };
+
+  const getMetricStatus = (m) => {
+    if (m.value === null) return { label: '—', color: '#98a2b3', dot: '#e4e7ec' };
+    const v = m.value;
+    if (!m.invert) {
+      if (v >= m.green)  return { label: 'Saudável', color: '#059669', dot: '#059669' };
+      if (v >= m.yellow) return { label: 'Atenção',  color: '#d97706', dot: '#d97706' };
+      return                    { label: 'Crítico',  color: '#dc2626', dot: '#dc2626' };
+    } else {
+      if (v <= m.green)  return { label: 'Saudável', color: '#059669', dot: '#059669' };
+      if (v <= m.yellow) return { label: 'Atenção',  color: '#d97706', dot: '#d97706' };
+      return                    { label: 'Crítico',  color: '#dc2626', dot: '#dc2626' };
+    }
+  };
+
+  const overall = getStatus(overallScore);
+
+  // Anel SVG
+  const radius = 50, circumference = 2 * Math.PI * radius;
+  const offset = overallScore !== null ? circumference - (overallScore / 100) * circumference : circumference;
+  const ringColor = overall.color;
+
+  return `
+  <div class="health-wrap">
+    <div class="health-left">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--muted2);margin-bottom:16px;">Saúde do Processo</div>
+      <div class="health-score-ring">
+        <svg width="120" height="120" viewBox="0 0 120 120">
+          <circle class="track" cx="60" cy="60" r="${radius}" stroke="var(--border)"/>
+          <circle class="fill" cx="60" cy="60" r="${radius}"
+            stroke="${ringColor}"
+            stroke-dasharray="${circumference}"
+            stroke-dashoffset="${offset}"
+          />
+        </svg>
+        <div class="health-score-val">
+          <div class="health-score-num" style="color:${ringColor}">${overallScore !== null ? overallScore : '—'}</div>
+          <div class="health-score-pct">${overallScore !== null ? '/ 100' : 'sem dados'}</div>
+        </div>
+      </div>
+      <div class="health-status" style="background:${overall.bg};color:${overall.color}">${overall.label}</div>
+      <div style="font-size:10px;color:var(--muted2);margin-top:8px;text-align:center;line-height:1.5;">Score ponderado<br>por benchmarks de mercado</div>
+    </div>
+    <div class="health-right">
+      <div class="health-right-title">Indicadores · benchmark de mercado</div>
+      ${metrics.map(m => {
+        const st = getMetricStatus(m);
+        const barWidth = m.score !== null ? m.score : 0;
+        const barColor = st.dot === '#e4e7ec' ? 'var(--border)' : st.dot;
+        return `
+        <div class="health-metric">
+          <div>
+            <div class="health-metric-name">${m.name}</div>
+            <div style="font-size:10px;color:var(--muted2)">${m.desc} · <span style="color:var(--muted)">${m.ref}</span></div>
+          </div>
+          <div class="health-metric-val" style="color:${st.color}">${m.value !== null ? m.value + '%' : '—'}</div>
+          <div class="health-metric-bar">
+            <div class="health-metric-fill" style="width:${barWidth}%;background:${barColor}"></div>
+          </div>
+          <div class="health-metric-status">
+            <div class="hm-dot" style="background:${st.dot}"></div>
+            <span style="color:${st.color}">${st.label}</span>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  </div>`;
+}
+
+// ── Sourcing data ──
+let sourcingData = null;
+
+function handleSourcingFile(input) {
+  const f = input.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = e => parseSourcingCSV(e.target.result);
+  r.readAsText(f);
+}
+
+function parseSourcingCSV(text) {
+  try {
+    const lines = text.trim().split('\n').filter(l => l.trim());
+    if (lines.length < 2) throw new Error('CSV vazio');
+
+    // Parse header
+    const headers = lines[0].split(',').map(h => h.replace(/"/g,'').trim().toLowerCase());
+    const iName    = headers.findIndex(h => h.includes('contact name'));
+    const iStage   = headers.findIndex(h => h === 'current stage');
+    const iOrg     = headers.findIndex(h => h.includes('organization'));
+    const iReason  = headers.findIndex(h => h.includes('archive reason'));
+    const iArchived= headers.findIndex(h => h.includes('is opportunity archived'));
+    const iOwner   = headers.findIndex(h => h.includes('opportunity owner'));
+    const iDate    = headers.findIndex(h => h === 'created date');
+
+    const rows = [];
+    for (let i = 1; i < lines.length; i++) {
+      // Handle commas inside quotes
+      const cols = lines[i].match(/(".*?"|[^,]+|(?<=,)(?=,)|^(?=,)|(?<=,)$)/g) || lines[i].split(',');
+      const cell = idx => idx >= 0 ? (cols[idx] || '').replace(/^"|"$/g,'').trim() : '';
+      rows.push({
+        name:     cell(iName),
+        stage:    cell(iStage),
+        org:      cell(iOrg),
+        reason:   cell(iReason),
+        archived: cell(iArchived),
+        owner:    cell(iOwner),
+        date:     cell(iDate),
+      });
+    }
+
+    sourcingData = rows.filter(r => r.name);
+    // Atualiza texto do botão
+    const btnCard = document.getElementById('btnSourcingCard');
+    if (btnCard) btnCard.textContent = '↻ Atualizar Sourcing CSV';
+    toast(`✓ ${sourcingData.length} candidatos de sourcing carregados`, 'success');
+    if (currentData) renderSourcingBlock();
+  } catch(e) {
+    toast('Erro ao ler Sourcing CSV: ' + e.message, 'error');
+  }
+}
+
+function renderSourcingBlock() {
+  const el = document.getElementById('sourcingBlock');
+  if (!el) return;
+
+  if (!sourcingData) {
+    el.innerHTML = `
+      <div class="sourcing-grid">
+        <div class="sourcing-empty" onclick="document.getElementById('fileInputSourcing').click()">
+          <div class="icon">📊</div>
+          <p>Carregue o CSV de candidatos do Lever<br>para ver dados de sourcing</p>
+          <span class="upload-hint" style="font-size:10px;padding:3px 10px;">⬆ Sourcing CSV</span>
+        </div>
+        <div class="sourcing-empty" onclick="document.getElementById('fileInputSourcing').click()">
+          <div class="icon">🏢</div>
+          <p>Top empresas e motivos de reprovação<br>aparecerão aqui</p>
+        </div>
+      </div>`;
+    return;
+  }
+
+  const d = sourcingData;
+
+  // Top empresas
+  const orgCount = {};
+  d.forEach(r => { if (r.org) orgCount[r.org] = (orgCount[r.org] || 0) + 1; });
+  const topOrgs = Object.entries(orgCount).sort((a,b) => b[1]-a[1]).slice(0, 10);
+  const maxOrg = topOrgs[0]?.[1] || 1;
+
+  // Motivos de reprovação
+  const reasonCount = {};
+  d.filter(r => r.reason).forEach(r => { reasonCount[r.reason] = (reasonCount[r.reason] || 0) + 1; });
+  const topReasons = Object.entries(reasonCount).sort((a,b) => b[1]-a[1]);
+  const totalReasons = Object.values(reasonCount).reduce((a,b) => a+b, 0);
+
+  // Cores por motivo
+  const reasonColors = {
+    'Não tem interesse': C.orange,
+    'Reprovado': C.red,
+    'Não respondeu mensagem': C.purple,
+    'Remuneração/Expectativa acima': C.yellow,
+    'Não avalia modelo de trabalho presencial/híbrido': C.blue,
+    'Não avalia modelo de contratação PJ': C.teal,
+    'Não possui nível de idioma necessário': '#8b44ac',
+    'Não compareceu na entrevista': '#64748b',
+    'Declinou durante o processo': '#94a3b8',
+    'Localização': '#cbd5e1',
+  };
+
+  el.innerHTML = `
+    <div class="sourcing-grid">
+
+      <!-- Top empresas -->
+      <div>
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted2);margin-bottom:12px;">
+          Top ${topOrgs.length} Empresas de Origem
+          <span style="font-weight:400;color:var(--muted2);margin-left:6px;">${d.length} candidatos responderam</span>
+        </div>
+        ${topOrgs.map(([org, count], i) => `
+          <div class="sourcing-bar-row">
+            <div class="sourcing-bar-label" title="${org}">${org}</div>
+            <div class="sourcing-bar-track">
+              <div class="sourcing-bar-fill" style="width:${Math.round(count/maxOrg*100)}%;background:${PAL[i%PAL.length]}"></div>
+            </div>
+            <div class="sourcing-bar-count">${count}</div>
+          </div>`).join('')}
+      </div>
+
+      <!-- Motivos de reprovação -->
+      <div>
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted2);margin-bottom:12px;">
+          Motivos de Reprovação
+          <span style="font-weight:400;color:var(--muted2);margin-left:6px;">${totalReasons} arquivados</span>
+        </div>
+        ${topReasons.map(([reason, count]) => {
+          const pct = Math.round(count / totalReasons * 100);
+          const color = reasonColors[reason] || '#94a3b8';
+          return `
+          <div class="reason-row">
+            <div class="reason-label">${reason}</div>
+            <div class="reason-bar"><div class="reason-bar-fill" style="width:${pct}%;background:${color}"></div></div>
+            <div class="reason-count" style="color:${color}">${count}</div>
+            <div class="reason-pct">${pct}%</div>
+          </div>`;
+        }).join('')}
+      </div>
+
+    </div>`;
 }
 
 function toast(msg,type='success'){
