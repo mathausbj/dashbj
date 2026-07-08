@@ -100,7 +100,7 @@ nav{width:56px;background:var(--nav);display:flex;flex-direction:column;align-it
 input[type=file]{display:none;}
 
 /* ── KPI GRID ── */
-.kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;}
+.kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;}
 .kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow);position:relative;transition:box-shadow .2s;}
 .kpi-card::before{content:'';position:absolute;top:-5px;left:18px;width:22px;height:9px;background:var(--brand);border-radius:3px 3px 0 0;z-index:2;}
 .kpi-card:hover{box-shadow:var(--shadow-md);}
@@ -511,6 +511,7 @@ function renderDashboard(){
       ${kpi('Ghost Rate','Sem resposta após abordagem',ghostRate!==null?ghostRate+'%':'—','👻',C.orange,'--kc:'+C.orange,ghostRate!==null?`${ghostCount} nunca responderam`:'dados insuficientes')}
       ${kpi('Taxa de Interesse','Responded → BJ Interview',bjRate!==null?bjRate+'%':'—','🎯',C.purple,'--kc:'+C.purple,bjRate!==null?`${h(sBJInt||empty)} toparam entrevista`:'dados insuficientes')}
       ${kpi('Aprovação p/ Cliente','BJ Interview → Client Interview',cv(sClient1,sBJInt)!==null?cv(sClient1,sBJInt)+'%':'—','⭐',C.green,'--kc:'+C.green,cv(sClient1,sBJInt)!==null?`${h(sClient1||empty)} de ${h(sBJInt||empty)} enviados`:'dados insuficientes')}
+      ${kpi('Taxa de Aderência','Client Interview (1) → (2)',cv(sClient2,sClient1)!==null?cv(sClient2,sClient1)+'%':'—','🤝',C.yellow,'--kc:'+C.yellow,cv(sClient2,sClient1)!==null?`${h(sClient2||empty)} de ${h(sClient1||empty)} avançaram`:'dados insuficientes')}
     </div>
 
     <!-- Waterfall + Calculadora -->
