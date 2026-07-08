@@ -769,7 +769,7 @@ function renderBarWrap(d){
   el.innerHTML=d.map((r,i)=>`
     <div class="bar-row">
       <div class="bar-label" title="${r.stage}">${r.stage}</div>
-      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(val(r)/max*100)}%;background:${PAL[i%PAL.length]}"></div></div>
+      <div class="bar-track"><div class="bar-fill" style="width:${Math.round(val(r)/max*100)}%;background:var(--text)"></div></div>
       <div class="bar-count">${val(r)}</div>
     </div>`).join('');
 }
@@ -779,8 +779,8 @@ function renderCompareChart(d){
   charts.cmp=new Chart(el,{type:'bar',data:{
     labels:d.map(r=>r.stage),
     datasets:[
-      {label:'Ativos',data:d.map(r=>r.activeOpp),backgroundColor:C.teal+'cc',borderRadius:3},
-      {label:'Histórico',data:d.map(r=>r.historicalOpp),backgroundColor:'#94a3b8cc',borderRadius:3},
+      {label:'Ativos',data:d.map(r=>r.activeOpp),backgroundColor:'#211D10',borderRadius:3},
+      {label:'Histórico',data:d.map(r=>r.historicalOpp),backgroundColor:'#F2C230',borderRadius:3},
     ]
   },options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{color:'#8A8065',font:{family:'Sora',size:10},padding:10,boxWidth:10}}},scales:{x:{ticks:{color:'#B3A886',font:{family:'Sora',size:9},maxRotation:25},grid:{display:false}},y:{ticks:{color:'#B3A886',font:{family:'Sora',size:9}},grid:{color:'rgba(0,0,0,.05)'}}}}});
 }
